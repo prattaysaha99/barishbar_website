@@ -1,0 +1,546 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Barish Restaurant Cum Bar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=DM+Mono:wght@400;500&family=Hind+Siliguri:wght@400;500;600&display=swap">
+<style>
+/* Layout: age gate first. Inside, each section has a "stage" column; a fixed WebGL canvas draws a 3D
+   bottle or glass at each stage's position as the page scrolls. Single dark look, bar-at-night. */
+:root{
+  --bg:#120A0C; --bg2:#1C1013; --line:#3A2227; --fg:#F4E8D6; --muted:#B79F8B;
+  --amber:#FFB547; --copper:#E07A2F; --ink:#1A0F05; --veg:#3BA64B; --nonveg:#D8473A;
+  --display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --body:'Hind Siliguri',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'DM Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:radial-gradient(900px 600px at 85% -5%,rgba(224,122,47,.20),transparent 60%),
+             radial-gradient(700px 500px at 0% 40%,rgba(120,30,50,.22),transparent 60%), var(--bg);
+  color:var(--fg); font-family:var(--body); font-size:17px; line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+body.locked{overflow:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--amber); outline-offset:3px; border-radius:3px}
+h1,h2,h3{font-family:var(--display); margin:0; text-wrap:balance; line-height:.95; text-transform:uppercase}
+.eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+.wrap{max-width:1180px; margin:0 auto}
+#gl{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; display:block}
+#app{position:relative; z-index:1}
+
+/* ---------- age gate ---------- */
+#gate{
+  position:fixed; inset:0; z-index:100; display:grid; place-items:center; text-align:center;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  background:radial-gradient(600px 420px at 50% 40%,rgba(224,122,47,.28),transparent 65%), var(--bg);
+}
+#gate .box{max-width:560px; display:grid; gap:22px; justify-items:center}
+#gate .mark{font-family:var(--display); font-weight:900; font-size:clamp(72px,22vw,168px); line-height:.85; letter-spacing:.01em; text-transform:uppercase}
+#gate .sub{font-family:var(--mono); font-size:13px; letter-spacing:.24em; text-transform:uppercase; color:var(--amber)}
+#gate h2{font-size:clamp(34px,8vw,52px); font-weight:800}
+#gate p{margin:0; color:var(--muted); max-width:40ch}
+.gate-actions{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.gate-glow{width:84px; height:2px; background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+#gate[data-state="denied"] .ask{display:none}
+#gate:not([data-state="denied"]) .no-entry{display:none}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 26px; border-radius:4px; font-family:var(--body); font-weight:600; font-size:17px; text-decoration:none; border:1.5px solid var(--amber); cursor:pointer; line-height:1.2}
+.btn.solid{background:var(--amber); color:var(--ink)}
+.btn.solid:hover{background:#FFC46D}
+.btn.ghost{background:transparent; color:var(--fg); border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--fg)}
+
+/* ---------- nav ---------- */
+.top{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:18px}
+.top .logo{font-family:var(--display); font-weight:900; font-size:28px; letter-spacing:.04em; text-decoration:none; text-transform:uppercase}
+.top nav{display:flex; align-items:center; gap:22px; font-size:15px}
+.top nav a:not(.btn){text-decoration:none; color:var(--muted)}
+.top nav a:not(.btn):hover{color:var(--fg)}
+.top .btn{padding:9px 16px; font-size:15px}
+
+/* ---------- hero ---------- */
+.hero{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(16px,4vw,56px); align-items:center; padding-block:clamp(16px,4vw,48px) clamp(40px,7vw,90px)}
+.hero > *{min-width:0}
+.hero h1{font-weight:900; font-size:clamp(88px,19vw,260px); letter-spacing:.005em; line-height:.8}
+.hero .kind{font-family:var(--mono); font-size:clamp(12px,2.2vw,15px); letter-spacing:.26em; text-transform:uppercase; color:var(--amber); margin-top:16px}
+.hero .tag{font-size:clamp(20px,3vw,28px); font-weight:500; margin:22px 0 0; line-height:1.25}
+.callblock{margin-top:30px; padding:22px 0 0; border-top:1px solid var(--line)}
+.bigphone{display:block; font-family:var(--display); font-weight:900; font-size:clamp(44px,9.4vw,104px); letter-spacing:.01em; line-height:1; margin-top:6px; text-decoration:none; color:var(--amber); font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+.cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:20px}
+.hrs{margin-top:14px; font-family:var(--mono); font-size:13px; color:var(--muted)}
+
+.stage{position:relative; min-height:clamp(280px,56vh,640px)}
+.no3d .stage{display:none}
+.split .stage{align-self:start; position:sticky; top:12vh; height:72vh}
+
+/* ---------- sections ---------- */
+section{padding-block:clamp(48px,8vw,96px); border-top:1px solid var(--line)}
+section h2{font-weight:900; font-size:clamp(48px,9vw,104px); letter-spacing:.005em}
+.split{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:clamp(20px,5vw,72px); align-items:center}
+.split.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+.split > *{min-width:0}
+.lead{color:var(--muted); font-size:18px; max-width:52ch; margin:16px 0 0}
+
+/* drink price tables */
+.tbl-scroll{overflow-x:auto; margin-top:26px}
+.group + .group{margin-top:34px}
+.group h3{font-size:34px; font-weight:800; letter-spacing:.03em; color:var(--amber)}
+table{width:100%; border-collapse:collapse; margin-top:8px}
+th{font-family:var(--mono); font-weight:500; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); text-align:right; padding:6px 0 8px}
+th:first-child,td:first-child{text-align:left}
+td{padding:12px 0; border-top:1px solid var(--line); text-align:right; font-family:var(--mono); font-size:16px; font-variant-numeric:tabular-nums}
+td:first-child{font-family:var(--body); font-size:17px; font-weight:500; padding-right:16px}
+td small{display:block; font-family:var(--body); font-size:14px; color:var(--muted); font-weight:400}
+.perk{margin-top:30px; padding:18px 22px; border:1px dashed var(--copper); border-radius:6px; display:flex; gap:6px 16px; align-items:baseline; flex-wrap:wrap}
+.perk b{font-family:var(--display); font-size:28px; font-weight:800; letter-spacing:.03em; text-transform:uppercase}
+.perk span{color:var(--muted)}
+
+/* food */
+.food{list-style:none; margin:34px 0 0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 clamp(24px,5vw,64px)}
+.food li{padding:13px 0; border-bottom:1px solid var(--line); min-width:0}
+.food .row{display:flex; align-items:baseline; gap:10px}
+.food .name{font-weight:600; font-size:18px}
+.food .dots{flex:1; border-bottom:2px dotted var(--line); transform:translateY(-4px); min-width:12px}
+.food .price{font-family:var(--mono); font-size:15px; font-variant-numeric:tabular-nums}
+.food .desc{color:var(--muted); font-size:15px; margin:1px 0 0 24px}
+.dot{flex:none; width:14px; height:14px; border:1.5px solid; display:inline-grid; place-items:center; transform:translateY(2px); border-radius:2px}
+.dot::after{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+.dot.v{color:var(--veg)} .dot.n{color:var(--nonveg)}
+.legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; font-size:14px; color:var(--muted); align-items:center}
+.legend span{display:inline-flex; gap:8px; align-items:center}
+
+/* takeaway */
+.takeaway{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center}
+.takeaway h2{font-size:clamp(40px,7vw,76px)}
+
+/* visit */
+.visit-info{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:26px clamp(20px,4vw,48px); margin-top:34px}
+.visit-info > *{min-width:0}
+.visit-info h3{font-family:var(--mono); font-weight:500; font-size:12px; letter-spacing:.16em; color:var(--muted); margin-bottom:8px}
+.visit-info p{margin:0; font-size:18px}
+.hours{display:grid; grid-template-columns:auto 1fr; gap:4px 18px; margin:0}
+.hours dt{color:var(--muted)} .hours dd{margin:0; font-family:var(--mono); font-size:15px}
+.copy{margin-top:12px; font-family:var(--mono); font-size:12px; background:none; border:1px solid var(--line); color:var(--muted); padding:6px 12px; border-radius:4px; cursor:pointer}
+.copy:hover{color:var(--fg); border-color:var(--fg)}
+
+footer{border-top:1px solid var(--line); padding-block:30px 40px; display:flex; justify-content:space-between; gap:12px 24px; flex-wrap:wrap; font-size:14px; color:var(--muted)}
+footer .bn{font-family:var(--display); font-weight:900; font-size:20px; letter-spacing:.04em; color:var(--fg); text-transform:uppercase}
+
+/* sticky call bar (phones) */
+.callbar{display:none}
+
+@media (max-width:820px){
+  body{font-size:16px; padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .top nav a:not(.btn){display:none}
+  .hero,.split,.split.flip{grid-template-columns:minmax(0,1fr)}
+  .hero .stage{order:-1; min-height:34vh}
+  .split .stage,.split.flip .stage{min-height:40vh; height:40vh; order:-1; position:static}
+  .food,.visit-info{grid-template-columns:minmax(0,1fr)}
+  .takeaway{grid-template-columns:minmax(0,1fr)}
+  .callbar{
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; position:fixed; left:0; right:0; bottom:0; z-index:50;
+    padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    background:rgba(18,10,12,.94); border-top:1px solid var(--line); backdrop-filter:blur(8px);
+  }
+  .callbar .btn{padding:14px 10px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-q">
+  <div class="box">
+    <div class="mark">Barish</div>
+    <div class="sub">Restaurant cum Bar</div>
+    <div class="gate-glow"></div>
+    <div class="ask">
+      <h2 id="gate-q">Are you 21 or older?</h2>
+      <p style="margin:12px auto 0">This website is about alcohol. You must be of legal drinking age to enter.</p>
+      <div class="gate-actions" style="margin-top:26px">
+        <button class="btn solid" id="yes" type="button">Yes, I am 21+</button>
+        <button class="btn ghost" id="no" type="button">No, I am under 21</button>
+      </div>
+    </div>
+    <div class="no-entry">
+      <h2>Sorry, no entry.</h2>
+      <p style="margin:12px auto 0">You must be 21 or older to view this website. Please come back when you are of legal drinking age.</p>
+    </div>
+  </div>
+</div>
+
+<div id="app"></div>
+
+<template id="site">
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="#top">Barish</a>
+      <nav aria-label="Sections">
+        <a href="#bar">Bar</a><a href="#food">Food</a><a href="#visit">Visit</a>
+        <a class="btn solid" data-call href="#visit"><span data-phone></span></a>
+      </nav>
+    </header>
+
+    <div class="hero" id="top">
+      <div>
+        <h1>Barish</h1>
+        <div class="kind">Restaurant cum Bar &nbsp;·&nbsp; বারিশ</div>
+        <p class="tag">Bairey brishti. Bhetore Barish.</p>
+        <div class="callblock">
+          <div class="eyebrow">Table book korte call korun</div>
+          <a class="bigphone" data-call data-phone href="#visit"></a>
+          <div class="cta">
+            <a class="btn solid" data-call href="#visit">Call now</a>
+            <a class="btn ghost" data-maps target="_blank" rel="noopener" href="#visit">Get directions</a>
+          </div>
+          <div class="hrs" data-hours-line></div>
+        </div>
+      </div>
+      <div class="stage" data-stage="whisky"></div>
+    </div>
+
+    <section id="bar">
+      <div class="split flip">
+        <div>
+          <div class="eyebrow">Bar</div>
+          <h2 style="margin-top:12px">The pour list</h2>
+          <p class="lead">Scotch, whisky, rum, vodka and beer. Spirits are priced per peg, 60 ml and 30 ml. Beer is per bottle. Prices in ₹.</p>
+          <div id="drinks"></div>
+          <div class="perk"><b>Chola &amp; nuts on the house</b><span>Every beer comes with a bowl, refilled while you stay.</span></div>
+        </div>
+        <div class="stage" data-stage="beer"></div>
+      </div>
+    </section>
+
+    <section id="food">
+      <div class="eyebrow">Khabar</div>
+      <h2 style="margin-top:12px">Bar food</h2>
+      <p class="lead">Hot, crisp and made to go with a cold glass.</p>
+      <ul class="food" id="foodlist"></ul>
+      <div class="legend">
+        <span><i class="dot v"></i> Veg</span>
+        <span><i class="dot n"></i> Non-veg (egg included)</span>
+        <span>Prices in ₹, taxes extra.</span>
+      </div>
+    </section>
+
+    <section id="takeaway">
+      <div class="takeaway">
+        <div>
+          <div class="eyebrow">Takeaway counter</div>
+          <h2 style="margin-top:12px">Just passing by?</h2>
+          <p class="lead">Our IML takeaway counter runs separately from the bar, so you can pick up and go without waiting for a table.</p>
+        </div>
+        <a class="btn solid" data-call href="#visit">Call the counter</a>
+      </div>
+    </section>
+
+    <section id="visit">
+      <div class="split flip">
+        <div>
+          <div class="eyebrow">Aashun</div>
+          <h2 style="margin-top:12px">Call, then come.</h2>
+          <a class="bigphone" data-call data-phone href="#visit" style="margin-top:22px"></a>
+          <div class="cta">
+            <a class="btn solid" data-call href="#visit">Call now</a>
+            <a class="btn ghost" data-maps target="_blank" rel="noopener" href="#visit">Get directions</a>
+          </div>
+          <div class="visit-info">
+            <div><h3>Address</h3><p data-address></p></div>
+            <div><h3>Hours</h3><dl class="hours" data-hours></dl></div>
+          </div>
+          <button class="copy" id="copyPhone" type="button">Copy phone number</button>
+        </div>
+        <div class="stage" data-stage="glass"></div>
+      </div>
+    </section>
+
+    <footer>
+      <div><span class="bn">Barish Restaurant Cum Bar</span> &nbsp;·&nbsp; West Bengal</div>
+      <div>For guests 21 and over. Please drink responsibly and never drink and drive.</div>
+    </footer>
+  </div>
+
+  <div class="callbar">
+    <a class="btn solid" data-call href="#visit">Call now</a>
+    <a class="btn ghost" data-maps target="_blank" rel="noopener" href="#visit">Directions</a>
+  </div>
+</template>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== Edit your details here ===== */
+var SITE = {
+  phoneDisplay: "+91 96096 47080",
+  phoneDigits: "919609647080",          /* country code + number, digits only */
+  address: "[Full address and landmark], West Bengal [PIN]",
+  mapsUrl: "https://maps.app.goo.gl/S5uzucwsVfWJ31VS9",
+  mapsQuery: "Barish Restaurant Cum Bar",
+  hours: [["Mon – Fri", "[12:00 pm – 11:00 pm]"], ["Sat – Sun", "[12:00 pm – 11:30 pm]"]]
+};
+/* Bar menu, prices in ₹. Spirits: 60 ml / 30 ml. */
+var DRINKS = [
+  { group: "Scotch", cols: ["60 ml", "30 ml"], rows: [
+      ["JW Black Label", 520, 280], ["Black Dog Gold", 400, 210], ["JW Red Label", 320, 165],
+      ["Black Dog", 300, 155], ["VAT 69", 290, 150], ["100 Pipers", 305, 155], ["Black & White", 305, 160] ] },
+  { group: "Whisky", cols: ["60 ml", "30 ml"], rows: [
+      ["BP Reserve", 195, 100], ["Oaksmith Gold", 185, 100], ["Signature", 160, 100],
+      ["Blenders Pride (BP)", 160, 100], ["Xclamation", 155, 80], ["Royal Stag (RS)", 130, 75],
+      ["McD No. 1 Luxury", 110, 70], ["Imperial Blue (IB)", 115, 65] ] },
+  { group: "Rum", cols: ["60 ml", "30 ml"], rows: [
+      ["Bacardi Limon", 160, 90], ["Bacardi Mango", 160, 90], ["Old Monk XXX", 100, 55],
+      ["Old Monk Coffee", 180, 95], ["Old Monk Gold R", 125, 70], ["Old Monk Legend", 150, 80] ] },
+  { group: "Vodka", cols: ["60 ml", "30 ml"], rows: [
+      ["Snoski Jamun", 130, 75], ["MMV Green Apple", 520, 280] ] },
+  { group: "Beer", cols: ["Bottle"], rows: [
+      ["Magnum", 280], ["Elephant", 280], ["Ultra Max", 270], ["Brocode", 270],
+      ["Kingfisher Strong", 250], ["Tuborg", 240], ["Hayward", 230], ["KIQ", 220],
+      ["Can (KF / Hayward / KIQ)", "MRP + 70"] ] },
+  { group: "Beverages", cols: ["Price"], rows: [
+      ["Red Bull", 150], ["Water (1 litre)", 25], ["Soda", 20], ["Cold drink (200 ml)", 30] ] }
+];
+var FOOD = [
+  ["Double Egg Omelette", "", 49, "n"],
+  ["Double Egg Poach", "", 49, "n"],
+  ["Double Egg Bujji", "", 59, "n"],
+  ["Chicken Popcorn", "", 129, "n"],
+  ["Chicken Dry Fry", "", 149, "n"],
+  ["Fish Finger", "", 159, "n"],
+  ["Fish Fry", "", 180, "n"],
+  ["Chicken Finger", "", 159, "n"],
+  ["Chicken Leg Fry", "", 139, "n"],
+  ["Chicken Wings Fry", "", 199, "n"],
+  ["Chicken Cheese Roll", "", 159, "n"],
+  ["Chicken Kurkure", "", 149, "n"],
+  ["Chicken Cutlet", "", 159, "n"],
+  ["Chicken Fry", "", 159, "n"],
+  ["Chicken Kosa", "", 220, "n"],
+  ["Green Salad", "", 49, "v"],
+  ["Roast Papad (2 pcs)", "", 49, "v"],
+  ["French Fry", "", 119, "v"],
+  ["Tawa Roti", "", 10, "v"]
+];
+
+(function () {
+  var KEY = "barish_age";
+  function get() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
+  function set(v) { try { sessionStorage.setItem(KEY, v); } catch (e) {} }
+  var gate = document.getElementById("gate"), app = document.getElementById("app");
+  var entered = false;
+
+  function deny() {
+    set("no");
+    gate.setAttribute("data-state", "denied");
+    gate.setAttribute("aria-labelledby", "");
+    document.body.classList.add("locked");
+  }
+  function enter() {
+    if (entered) return; entered = true;
+    set("ok");
+    app.appendChild(document.getElementById("site").content.cloneNode(true));
+    gate.remove();
+    document.body.classList.remove("locked");
+    fill();
+    start3d();
+  }
+
+  /* ---------- fill content ---------- */
+  function fill() {
+    var $$ = function (s) { return app.querySelectorAll(s); };
+    var tel = SITE.phoneDigits ? "tel:+" + SITE.phoneDigits.replace(/\D/g, "") : "";
+    var maps = SITE.mapsUrl || ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(SITE.mapsQuery));
+    Array.prototype.forEach.call($$("[data-phone]"), function (e) { e.textContent = SITE.phoneDisplay; });
+    Array.prototype.forEach.call($$("[data-call]"), function (e) { if (tel) e.setAttribute("href", tel); });
+    Array.prototype.forEach.call($$("[data-maps]"), function (e) { e.setAttribute("href", maps); });
+    Array.prototype.forEach.call($$("[data-address]"), function (e) { e.textContent = SITE.address; });
+    var hl = app.querySelector("[data-hours-line]");
+    if (hl) hl.textContent = SITE.hours.map(function (h) { return h[0] + " " + h[1]; }).join("  ·  ");
+    var hs = app.querySelector("[data-hours]");
+    SITE.hours.forEach(function (r) {
+      var a = document.createElement("dt"); a.textContent = r[0];
+      var b = document.createElement("dd"); b.textContent = r[1];
+      hs.appendChild(a); hs.appendChild(b);
+    });
+    var cp = app.querySelector("#copyPhone");
+    cp.addEventListener("click", function () {
+      function done(t) { cp.textContent = t; setTimeout(function () { cp.textContent = "Copy phone number"; }, 1800); }
+      try { navigator.clipboard.writeText(SITE.phoneDisplay).then(function () { done("Copied"); }, function () { done("Select the number above"); }); }
+      catch (e) { done("Select the number above"); }
+    });
+
+    var dr = app.querySelector("#drinks");
+    DRINKS.forEach(function (g) {
+      var box = document.createElement("div"); box.className = "group";
+      var h = document.createElement("h3"); h.textContent = g.group; box.appendChild(h);
+      var sc = document.createElement("div"); sc.className = "tbl-scroll"; sc.style.marginTop = "0";
+      var t = document.createElement("table");
+      var head = "<thead><tr><th>Item</th>" + g.cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr></thead>";
+      var body = "<tbody>" + g.rows.map(function (r) {
+        return "<tr><td></td>" + r.slice(1).map(function (p) { return "<td>" + (typeof p === "number" ? "₹" + p : p) + "</td>"; }).join("") + "</tr>";
+      }).join("") + "</tbody>";
+      t.innerHTML = head + body;
+      var tds = t.querySelectorAll("tbody tr td:first-child");
+      g.rows.forEach(function (r, i) { tds[i].textContent = r[0]; });
+      sc.appendChild(t); box.appendChild(sc); dr.appendChild(box);
+    });
+
+    var fl = app.querySelector("#foodlist");
+    FOOD.forEach(function (m) {
+      var li = document.createElement("li");
+      var row = document.createElement("div"); row.className = "row";
+      var dot = document.createElement("i"); dot.className = "dot " + m[3];
+      var nm = document.createElement("span"); nm.className = "name"; nm.textContent = m[0];
+      var ds = document.createElement("span"); ds.className = "dots";
+      var pr = document.createElement("span"); pr.className = "price"; pr.textContent = "₹" + m[2];
+      row.append(dot, nm, ds, pr);
+      li.appendChild(row);
+      if (m[1]) { var d = document.createElement("div"); d.className = "desc"; d.textContent = m[1]; li.appendChild(d); }
+      fl.appendChild(li);
+    });
+  }
+
+  /* ---------- 3D ---------- */
+  function start3d() {
+    var T = window.THREE, cv = document.getElementById("gl");
+    var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var renderer;
+    try {
+      if (!T) throw new Error("no three");
+      renderer = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    } catch (e) { document.body.classList.add("no3d"); cv.style.display = "none"; return; }
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = T.sRGBEncoding;
+    var scene = new T.Scene();
+    var camera = new T.PerspectiveCamera(35, 1, 0.1, 100); camera.position.z = 14;
+
+    scene.add(new T.AmbientLight(0xffe7c8, 0.55));
+    var key = new T.DirectionalLight(0xffd9a0, 1.25); key.position.set(-4, 6, 7); scene.add(key);
+    var rim = new T.PointLight(0xff7a3d, 1.6, 40); rim.position.set(5, 2, -4); scene.add(rim);
+    var fill = new T.PointLight(0x8fb4ff, 0.7, 40); fill.position.set(-6, -2, 3); scene.add(fill);
+
+    function glassMat(color, op) { return new T.MeshPhongMaterial({ color: color, transparent: true, opacity: op, shininess: 160, specular: 0xffffff, side: T.DoubleSide, depthWrite: false }); }
+    function liquidMat(color, emis, op) { return new T.MeshPhongMaterial({ color: color, emissive: emis, transparent: true, opacity: op, shininess: 60, specular: 0xffd9a0, side: T.DoubleSide, depthWrite: false }); }
+    function lathe(pts, mat, seg) { return new T.Mesh(new T.LatheGeometry(pts.map(function (p) { return new T.Vector2(p[0], p[1]); }), seg || 56), mat); }
+    function labelTex(top, bottom, bg, fg, accent) {
+      var c = document.createElement("canvas"); c.width = 1024; c.height = 640; var x = c.getContext("2d");
+      function draw() {
+        x.fillStyle = bg; x.fillRect(0, 0, 1024, 640);
+        x.strokeStyle = accent; x.lineWidth = 8; x.strokeRect(22, 22, 980, 596);
+        x.fillStyle = fg; x.textAlign = "center"; x.textBaseline = "middle";
+        x.font = '900 250px "Big Shoulders Display","Arial Narrow",Impact,sans-serif'; x.fillText(top, 512, 270);
+        x.fillStyle = accent; x.font = '500 52px "DM Mono",monospace'; x.fillText(bottom, 512, 470);
+      }
+      draw();
+      var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+      if (document.fonts && document.fonts.load) document.fonts.load('900 100px "Big Shoulders Display"').then(function () { draw(); t.needsUpdate = true; });
+      return t;
+    }
+    function labelMesh(r, h, y, arc, tex) {
+      var m = new T.Mesh(new T.CylinderGeometry(r, r, h, 40, 1, true, -arc / 2, arc), new T.MeshPhongMaterial({ map: tex, shininess: 30, side: T.DoubleSide }));
+      m.position.y = y; return m;
+    }
+    function band(r, y, h) {
+      var m = new T.Mesh(new T.CylinderGeometry(r, r, h, 48), new T.MeshPhongMaterial({ color: 0xd9a441, shininess: 120, specular: 0xfff0b0 }));
+      m.position.y = y; return m;
+    }
+
+    function whisky() {
+      var g = new T.Group(), inner = new T.Group(); inner.position.y = -2.7; g.add(inner);
+      var gl = lathe([[0,0],[.98,0],[1.02,.1],[1.02,2.7],[.98,3.1],[.7,3.5],[.4,3.85],[.34,4.1],[.34,4.9],[.38,5.0],[.38,5.1]], glassMat(0xf0dcc0, 0.26)); gl.renderOrder = 3;
+      var lq = lathe([[0,.12],[.9,.12],[.94,.2],[.94,2.65],[.9,3.0],[.64,3.4],[.34,3.75],[.28,4.1],[0,4.1]], liquidMat(0xc8741a, 0x6b3208, 0.92)); lq.renderOrder = 2;
+      inner.add(gl, lq);
+      inner.add(labelMesh(1.035, 1.4, 1.55, 2.3, labelTex("BARISH", "RESERVE · 750 ML", "#EFE2C8", "#1A0F05", "#B07A1E")));
+      inner.add(band(1.04, 2.35, 0.06), band(1.04, 0.75, 0.06), band(.385, 5.08, 0.08));
+      var cap = new T.Mesh(new T.CylinderGeometry(.4, .4, .5, 32), new T.MeshPhongMaterial({ color: 0x1a1214, shininess: 90 })); cap.position.y = 5.35; inner.add(cap);
+      return { obj: g, H: 5.7, W: 2.1 };
+    }
+    function beer() {
+      var g = new T.Group(), inner = new T.Group(); inner.position.y = -3.3; g.add(inner);
+      var gl = lathe([[0,0],[.8,0],[.84,.1],[.84,3.2],[.76,3.7],[.5,4.3],[.3,4.9],[.27,5.3],[.27,6.3],[.31,6.4],[.31,6.55]], glassMat(0x7a3f0c, 0.55)); gl.renderOrder = 3;
+      var lq = lathe([[0,.12],[.76,.12],[.8,.2],[.8,3.2],[.72,3.65],[.46,4.2],[.27,4.8],[0,4.8]], liquidMat(0xe59a1f, 0x7a4308, 0.92)); lq.renderOrder = 2;
+      inner.add(gl, lq);
+      inner.add(labelMesh(.855, 1.2, 2.1, 2.4, labelTex("BARISH", "STRONG · ICE COLD", "#12241A", "#F4E8D6", "#E8B24A")));
+      var crown = new T.Mesh(new T.CylinderGeometry(.34, .31, .16, 24), new T.MeshPhongMaterial({ color: 0xd9a441, shininess: 120 })); crown.position.y = 6.62; inner.add(crown);
+      return { obj: g, H: 6.8, W: 1.8 };
+    }
+    var ice = [];
+    function glass() {
+      var g = new T.Group(), inner = new T.Group(); inner.position.y = -1.35; g.add(inner);
+      var gl = lathe([[0,0],[1.2,0],[1.25,.05],[1.45,2.6],[1.47,2.65],[1.4,2.65],[1.22,.5],[0,.5]], glassMat(0xe2ecf2, 0.24), 64); gl.renderOrder = 3;
+      var lq = new T.Mesh(new T.CylinderGeometry(1.38, 1.22, 1.55, 48), liquidMat(0xc8741a, 0x6b3208, 0.9)); lq.position.y = 1.27; lq.renderOrder = 2;
+      inner.add(gl, lq);
+      [[.4, 1.95, .2, .8], [-.45, 1.75, -.2, .75]].forEach(function (p, i) {
+        var c = new T.Mesh(new T.BoxGeometry(p[3], p[3], p[3]), new T.MeshPhongMaterial({ color: 0xeaf6ff, transparent: true, opacity: .5, shininess: 200, specular: 0xffffff, depthWrite: false }));
+        c.position.set(p[0], p[1], p[2]); c.rotation.set(.5 + i, .7 * i, .3); c.renderOrder = 4; c.userData.y0 = p[1]; c.userData.k = i; inner.add(c); ice.push(c);
+      });
+      return { obj: g, H: 2.8, W: 3.0 };
+    }
+    var makers = { whisky: whisky, beer: beer, glass: glass };
+    var items = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-stage]"), function (el) {
+      var m = makers[el.getAttribute("data-stage")]();
+      scene.add(m.obj); items.push({ el: el, o: m.obj, H: m.H, W: m.W, phase: Math.random() * 6 });
+    });
+
+    /* embers */
+    var N = 90, pos = new Float32Array(N * 3), spd = new Float32Array(N), halfH = Math.tan(17.5 * Math.PI / 180) * 14, halfW = halfH;
+    function seed(i, anyY) { pos[i*3] = (Math.random() * 2 - 1) * halfW * 1.2; pos[i*3+1] = anyY ? (Math.random() * 2 - 1) * halfH : -halfH - .2; pos[i*3+2] = (Math.random() * 2 - 1) * 4 - 1; spd[i] = .15 + Math.random() * .4; }
+    for (var i = 0; i < N; i++) seed(i, true);
+    var sp = document.createElement("canvas"); sp.width = sp.height = 64; var sx = sp.getContext("2d");
+    var gr = sx.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,200,110,1)"); gr.addColorStop(.35, "rgba(255,160,60,.45)"); gr.addColorStop(1, "rgba(255,140,40,0)");
+    sx.fillStyle = gr; sx.fillRect(0, 0, 64, 64);
+    var pg = new T.BufferGeometry(); pg.setAttribute("position", new T.BufferAttribute(pos, 3));
+    var pts = new T.Points(pg, new T.PointsMaterial({ size: .3, map: new T.CanvasTexture(sp), transparent: true, opacity: .75, blending: T.AdditiveBlending, depthWrite: false }));
+    scene.add(pts);
+
+    var W = 0, H = 0, upp = 1, px = 0, py = 0, tx = 0, ty = 0, last = 0;
+    function size() {
+      W = window.innerWidth; H = window.innerHeight;
+      renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+      upp = 2 * Math.tan(17.5 * Math.PI / 180) * camera.position.z / H; halfW = halfH * camera.aspect;
+    }
+    function frame(ms) {
+      var t = still ? 0 : ms / 1000, dt = Math.min(.05, (ms - last) / 1000 || .016); last = ms;
+      px += (tx - px) * .06; py += (ty - py) * .06;
+      var sy = window.scrollY || 0;
+      items.forEach(function (it) {
+        var r = it.el.getBoundingClientRect();
+        var vis = r.width > 0 && r.bottom > -120 && r.top < H + 120;
+        it.o.visible = vis; if (!vis) return;
+        it.o.position.x = (r.left + r.width / 2 - W / 2) * upp;
+        it.o.position.y = (H / 2 - (r.top + r.height / 2)) * upp + (still ? 0 : Math.sin(t * .9 + it.phase) * .12);
+        var s = Math.min(r.height * .92 / it.H, r.width * .9 / it.W) * upp; it.o.scale.setScalar(s);
+        it.o.rotation.y = t * .4 + it.phase + sy * .0016 + px * .5;
+        it.o.rotation.x = py * .12;
+      });
+      ice.forEach(function (c) { c.position.y = c.userData.y0 + Math.sin(t * 1.2 + c.userData.k * 2) * .06; c.rotation.y = t * .3 + c.userData.k; });
+      if (!still) {
+        for (var i = 0; i < N; i++) { pos[i*3+1] += spd[i] * dt; pos[i*3] += Math.sin(t + i) * dt * .1; if (pos[i*3+1] > halfH + .2) seed(i, false); }
+        pg.attributes.position.needsUpdate = true;
+      }
+      renderer.render(scene, camera);
+      if (!still) requestAnimationFrame(frame);
+    }
+    size();
+    window.addEventListener("resize", function () { size(); if (still) frame(0); });
+    window.addEventListener("pointermove", function (e) { tx = (e.clientX / window.innerWidth) * 2 - 1; ty = (e.clientY / window.innerHeight) * 2 - 1; }, { passive: true });
+    if (still) { window.addEventListener("scroll", function () { frame(0); }, { passive: true }); frame(0); }
+    else requestAnimationFrame(frame);
+  }
+
+  /* ---------- gate wiring ---------- */
+  document.getElementById("yes").addEventListener("click", enter);
+  document.getElementById("no").addEventListener("click", deny);
+  var s = get();
+  if (s === "ok") enter();
+  else if (s === "no") deny();
+  else { document.body.classList.add("locked"); try { document.getElementById("yes").focus(); } catch (e) {} }
+})();
+</script>
+
+</body></html>
